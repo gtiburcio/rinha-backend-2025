@@ -22,3 +22,35 @@ func (p PaymentRequest) Valid() error {
 
 	return nil
 }
+
+type PaymentSummaryModel struct {
+	Type  string
+	Count uint
+	Sum   float64
+}
+
+type PaymentSummaryResponse struct {
+	Default  PaymentSummaryResponseDetail `json:"default"`
+	Fallback PaymentSummaryResponseDetail `json:"fallback"`
+}
+
+type PaymentSummaryResponseDetail struct {
+	TotalRequests uint    `json:"totalRequests"`
+	TotalAmount   float64 `json:"totalAmount"`
+}
+
+func BuildResponse(models []PaymentSummaryModel) (p PaymentSummaryResponse) {
+	for _, m := range models {
+		detail := PaymentSummaryResponseDetail{
+			TotalRequests: m.Count,
+			TotalAmount:   m.Sum,
+		}
+		if m.Type == "default" {
+			p.Default = detail
+		} else {
+			p.Fallback = detail
+		}
+	}
+
+	return
+}

@@ -8,11 +8,18 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"rinha-backend-2025-gtiburcio/src/config"
 	"rinha-backend-2025-gtiburcio/src/model"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
+)
+
+var (
+	defaultHost  string
+	fallbackHost string
 )
 
 type App struct {
@@ -20,16 +27,67 @@ type App struct {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "local" {
+		log.Default().Print("Running local")
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
+	}
+
+	defaultHost = os.Getenv("DEFAULT_HOST")
+	fallbackHost = os.Getenv("FALLBACK_HOST")
+
 	app := App{
 		dbConn: config.NewDBConfig().DBConn,
 	}
 
 	http.HandleFunc("/payments", app.handleSavePayment)
+	http.HandleFunc("/payments-summary", app.handlePaymentSummary)
 
 	fmt.Println("Server starting on port 3000...")
 	log.Fatal(http.ListenAndServe(":3000", nil))
 }
 
+func (a App) handlePaymentSummary(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+
+	query := `select type, count(1) as "count", sum(amount) as "sum" from payment
+			 where requested_at between $1 and $2
+			 group by type;
+	`
+
+	rows, err := a.dbConn.Query(r.Context(), query, from, to)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	psmList := []model.PaymentSummaryModel{}
+
+	for rows.Next() {
+		psm := model.PaymentSummaryModel{}
+		rows.Scan(&psm.Type, &psm.Count, &psm.Sum)
+		psmList = append(psmList, psm)
+	}
+
+	paymentSummary := model.BuildResponse(psmList)
+
+	resp, err := json.Marshal(paymentSummary)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.Write(resp)
+}
 func (a App) handleSavePayment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -106,9 +164,9 @@ func (a App) execClientCall(ctx context.Context, pr *model.PaymentRequest, fallb
 }
 
 func getBaseURL(fallback bool) string {
-	port := 8001
+	host := defaultHost
 	if fallback {
-		port = 8002
+		host = fallbackHost
 	}
-	return fmt.Sprintf("http://localhost:%d", port)
+	return fmt.Sprintf("http://%s", host)
 }
