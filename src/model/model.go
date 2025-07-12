@@ -23,7 +23,7 @@ func (p PaymentRequest) Valid() error {
 	return nil
 }
 
-type PaymentSummaryModel struct {
+type PaymentSummaryDTO struct {
 	Type  string
 	Count uint
 	Sum   float64
@@ -39,7 +39,7 @@ type PaymentSummaryResponseDetail struct {
 	TotalAmount   float64 `json:"totalAmount"`
 }
 
-func BuildResponse(models []PaymentSummaryModel) (p PaymentSummaryResponse) {
+func BuildResponse(models []PaymentSummaryDTO) (p PaymentSummaryResponse) {
 	for _, m := range models {
 		detail := PaymentSummaryResponseDetail{
 			TotalRequests: m.Count,
