@@ -31,7 +31,7 @@ func NewJob(useCase Usecase) Job {
 	return Job{
 		queue:      make(chan jobDTO, 20000),
 		maxRetries: 5,
-		retryDelay: time.Second * 2,
+		retryDelay: time.Millisecond * 100,
 		useCase:    useCase,
 	}
 }
@@ -60,16 +60,16 @@ func (j Job) Exec() {
 		ctx := context.WithoutCancel(context.Background())
 		err := j.useCase.ProcessPayment(ctx, dto.data)
 		if err != nil && !apperror.IsIgnorableError(err) {
-			j.enqueueToRetry(dto)
+			j.enqueueToRetry(dto, err)
 		}
 	}
 }
 
-func (j Job) enqueueToRetry(dto jobDTO) {
+func (j Job) enqueueToRetry(dto jobDTO, err error) {
 	if j.maxRetries > dto.numRetries {
 		dto.numRetries++
 
-		log.Default().Printf("enqueue to retry payment with id %s numRetry %d", dto.data.CorrelationID, dto.numRetries)
+		log.Default().Printf("enqueue to retry payment with id %s numRetry %d: %v", dto.data.CorrelationID, dto.numRetries, err)
 
 		time.Sleep(j.retryDelay)
 
