@@ -17,3 +17,9 @@ Ref. https://gobyexample.com/worker-pools
 ```bash
 docker-compose up -d
 ```
+
+Ou
+
+```bash
+make start-compose
+```
