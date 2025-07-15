@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"rinha-backend-2025-gtiburcio/src/model"
 
@@ -37,14 +36,8 @@ func (h Handler) HandleSavePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	pr := model.PaymentRequest{}
-	if err := json.Unmarshal(body, &pr); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&pr); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
