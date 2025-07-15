@@ -13,6 +13,10 @@ import (
 	"github.com/goccy/go-json"
 )
 
+const (
+	retryTimes = 1
+)
+
 type Client struct {
 	client             http.Client
 	defaultServiceURL  string
@@ -35,7 +39,7 @@ func (c Client) SavePayment(ctx context.Context, pr model.PaymentRequest) (strin
 		return "", err
 	}
 
-	err = c.execCall(c.defaultServiceURL, j)
+	err = c.execRetryableCall(c.defaultServiceURL, j)
 	if err == nil {
 		return "default", nil
 	}
@@ -50,6 +54,19 @@ func (c Client) SavePayment(ctx context.Context, pr model.PaymentRequest) (strin
 	}
 
 	return "", err
+}
+
+func (c Client) execRetryableCall(baseURL string, payload []byte) error {
+	err := c.execCall(baseURL, payload)
+
+	count := 0
+
+	if err != nil && !apperror.IsIgnorableError(err) && retryTimes > count {
+		count++
+		return c.execCall(baseURL, payload)
+	}
+
+	return err
 }
 
 func (c Client) execCall(baseURL string, payload []byte) error {
