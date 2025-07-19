@@ -18,6 +18,7 @@ type Client struct {
 	defaultClient      http.Client
 	fallbackClient     http.Client
 	retryTimes         int
+	retryDelay         time.Duration
 	defaultServiceURL  string
 	fallbackServiceURL string
 }
@@ -26,6 +27,11 @@ func NewClient() Client {
 	retryTimes, err := strconv.ParseInt(os.Getenv("RETRY_TIMES"), 10, 64)
 	if err != nil {
 		retryTimes = 5
+	}
+
+	retryDelay, err := strconv.ParseInt(os.Getenv("RETRY_DELAY"), 10, 64)
+	if err != nil {
+		retryDelay = 500
 	}
 
 	defaultTimeout, err := strconv.ParseInt(os.Getenv("DEFAULT_TIMEOUT"), 10, 64)
@@ -46,6 +52,7 @@ func NewClient() Client {
 			Timeout: time.Millisecond * time.Duration(fallbackTimeout),
 		},
 		retryTimes:         int(retryTimes),
+		retryDelay:         time.Millisecond * time.Duration(retryDelay),
 		defaultServiceURL:  getBaseURL(os.Getenv("DEFAULT_HOST")),
 		fallbackServiceURL: getBaseURL(os.Getenv("FALLBACK_HOST")),
 	}
@@ -66,6 +73,8 @@ func (c Client) SavePayment(ctx context.Context, pr model.PaymentRequest) (strin
 		if apperror.IsIgnorableError(err) {
 			return "", err
 		}
+
+		time.Sleep(c.retryDelay)
 	}
 
 	err = c.execCall(c.fallbackServiceURL, j, true)
