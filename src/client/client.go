@@ -8,22 +8,44 @@ import (
 	"os"
 	"rinha-backend-2025-gtiburcio/src/apperror"
 	"rinha-backend-2025-gtiburcio/src/model"
+	"strconv"
 	"time"
 
 	"github.com/goccy/go-json"
 )
 
 type Client struct {
-	client             http.Client
+	defaultClient      http.Client
+	fallbackClient     http.Client
+	retryTimes         int
 	defaultServiceURL  string
 	fallbackServiceURL string
 }
 
 func NewClient() Client {
+	retryTimes, err := strconv.ParseInt(os.Getenv("RETRY_TIMES"), 10, 64)
+	if err != nil {
+		retryTimes = 5
+	}
+
+	defaultTimeout, err := strconv.ParseInt(os.Getenv("DEFAULT_TIMEOUT"), 10, 64)
+	if err != nil {
+		defaultTimeout = 200
+	}
+
+	fallbackTimeout, err := strconv.ParseInt(os.Getenv("FALLBACK_TIMEOUT"), 10, 64)
+	if err != nil {
+		fallbackTimeout = 500
+	}
+
 	return Client{
-		client: http.Client{
-			Timeout: time.Second * 2,
+		defaultClient: http.Client{
+			Timeout: time.Millisecond * time.Duration(defaultTimeout),
 		},
+		fallbackClient: http.Client{
+			Timeout: time.Millisecond * time.Duration(fallbackTimeout),
+		},
+		retryTimes:         int(retryTimes),
 		defaultServiceURL:  getBaseURL(os.Getenv("DEFAULT_HOST")),
 		fallbackServiceURL: getBaseURL(os.Getenv("FALLBACK_HOST")),
 	}
@@ -35,16 +57,18 @@ func (c Client) SavePayment(ctx context.Context, pr model.PaymentRequest) (strin
 		return "", err
 	}
 
-	err = c.execCall(c.defaultServiceURL, j)
-	if err == nil {
-		return "default", nil
+	for i := 0; i < c.retryTimes; i++ {
+		err = c.execCall(c.defaultServiceURL, j, false)
+		if err == nil {
+			return "default", nil
+		}
+
+		if apperror.IsIgnorableError(err) {
+			return "", err
+		}
 	}
 
-	if apperror.IsIgnorableError(err) {
-		return "", err
-	}
-
-	err = c.execCall(c.fallbackServiceURL, j)
+	err = c.execCall(c.fallbackServiceURL, j, true)
 	if err == nil {
 		return "fallback", nil
 	}
@@ -52,8 +76,12 @@ func (c Client) SavePayment(ctx context.Context, pr model.PaymentRequest) (strin
 	return "", err
 }
 
-func (c Client) execCall(baseURL string, payload []byte) error {
-	resp, err := c.client.Post(baseURL, "application/json", bytes.NewBuffer(payload))
+func (c Client) execCall(baseURL string, payload []byte, isFallback bool) error {
+	client := c.defaultClient
+	if isFallback {
+		client = c.fallbackClient
+	}
+	resp, err := client.Post(baseURL, "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		return fmt.Errorf("error to call payments api: %v", err)
 	}

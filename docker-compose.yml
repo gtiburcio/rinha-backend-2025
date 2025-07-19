@@ -33,6 +33,9 @@ services:
       - DB_NAME=rinha
       - DEFAULT_HOST=payment-processor-default:8080
       - FALLBACK_HOST=payment-processor-fallback:8080
+      - RETRY_TIMES=50
+      - DEFAULT_TIMEOUT=3000
+      - FALLBACK_TIMEOUT=3000
     networks:
       - rinha-back
       - payment-processor
