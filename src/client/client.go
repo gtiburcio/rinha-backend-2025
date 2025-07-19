@@ -13,10 +13,6 @@ import (
 	"github.com/goccy/go-json"
 )
 
-const (
-	retryTimes = 1
-)
-
 type Client struct {
 	client             http.Client
 	defaultServiceURL  string
@@ -39,7 +35,7 @@ func (c Client) SavePayment(ctx context.Context, pr model.PaymentRequest) (strin
 		return "", err
 	}
 
-	err = c.execRetryableCall(c.defaultServiceURL, j)
+	err = c.execCall(c.defaultServiceURL, j)
 	if err == nil {
 		return "default", nil
 	}
@@ -56,22 +52,8 @@ func (c Client) SavePayment(ctx context.Context, pr model.PaymentRequest) (strin
 	return "", err
 }
 
-func (c Client) execRetryableCall(baseURL string, payload []byte) error {
-	err := c.execCall(baseURL, payload)
-
-	count := 0
-
-	if err != nil && !apperror.IsIgnorableError(err) && retryTimes > count {
-		count++
-		return c.execCall(baseURL, payload)
-	}
-
-	return err
-}
-
 func (c Client) execCall(baseURL string, payload []byte) error {
-	url := baseURL + "/payments"
-	resp, err := c.client.Post(url, "application/json", bytes.NewBuffer(payload))
+	resp, err := c.client.Post(baseURL, "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		return fmt.Errorf("error to call payments api: %v", err)
 	}
@@ -87,5 +69,5 @@ func (c Client) execCall(baseURL string, payload []byte) error {
 }
 
 func getBaseURL(host string) string {
-	return fmt.Sprintf("http://%s", host)
+	return fmt.Sprintf("http://%s/payments", host)
 }
