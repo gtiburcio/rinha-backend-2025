@@ -2,7 +2,7 @@ set timezone TO 'UTC';
 
 create type payment_type as ENUM ('default', 'fallback');
 
-create table payment (
+create unlogged table payment (
 	correlation_id UUID primary key,
 	amount DECIMAL not null,
 	type payment_type not null,
