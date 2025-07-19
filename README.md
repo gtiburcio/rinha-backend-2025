@@ -1,5 +1,9 @@
 # Rinha de Backend 2025 - Go
 
+## Repositório
+
+https://github.com/gtiburcio/rinha-backend-2025
+
 ## Tecnologias
 
 - **Go 1.24** - Performance e eficiência
