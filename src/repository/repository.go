@@ -8,9 +8,8 @@ import (
 )
 
 const (
-	summaryQuery = `select type, count(1) as "count", sum(amount) as "sum" from payment
+	summaryQuery = `select type, amount from payment
 			 where requested_at between $1 and $2
-			 group by type;
 	`
 )
 
@@ -44,7 +43,7 @@ func (r Repository) FindSummary(ctx context.Context, from, to string) ([]model.P
 
 	for rows.Next() {
 		psm := model.PaymentSummaryDTO{}
-		rows.Scan(&psm.Type, &psm.Count, &psm.Sum)
+		rows.Scan(&psm.Type, &psm.Amount)
 		dtos = append(dtos, psm)
 	}
 

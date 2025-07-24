@@ -2,8 +2,10 @@ package handler
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"rinha-backend-2025-gtiburcio/src/model"
+	"time"
 
 	"github.com/goccy/go-json"
 )
@@ -56,6 +58,7 @@ func (h Handler) HandleSavePayment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) HandlePaymentSummary(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -75,6 +78,8 @@ func (h Handler) HandlePaymentSummary(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	log.Default().Printf("get time %d \n", (time.Since(start) / time.Millisecond))
 
 	w.Header().Add("Content-Type", "application/json")
 	w.Write(resp)

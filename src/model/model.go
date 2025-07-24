@@ -24,9 +24,8 @@ func (p PaymentRequest) Valid() error {
 }
 
 type PaymentSummaryDTO struct {
-	Type  string
-	Count uint
-	Sum   float64
+	Type   string
+	Amount float64
 }
 
 type PaymentSummaryResponse struct {
@@ -40,17 +39,26 @@ type PaymentSummaryResponseDetail struct {
 }
 
 func BuildResponse(models []PaymentSummaryDTO) (p PaymentSummaryResponse) {
+	def := PaymentSummaryResponseDetail{
+		TotalRequests: 0,
+		TotalAmount:   0,
+	}
+	fal := PaymentSummaryResponseDetail{
+		TotalRequests: 0,
+		TotalAmount:   0,
+	}
 	for _, m := range models {
-		detail := PaymentSummaryResponseDetail{
-			TotalRequests: m.Count,
-			TotalAmount:   m.Sum,
-		}
 		if m.Type == "default" {
-			p.Default = detail
+			def.TotalAmount = def.TotalAmount + m.Amount
+			def.TotalRequests = def.TotalRequests + 1
 		} else {
-			p.Fallback = detail
+			fal.TotalAmount = fal.TotalAmount + m.Amount
+			fal.TotalRequests = fal.TotalRequests + 1
 		}
 	}
+
+	p.Default = def
+	p.Fallback = fal
 
 	return
 }
