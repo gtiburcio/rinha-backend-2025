@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"rinha-backend-2025-gtiburcio/src/model"
-	"time"
 
 	"github.com/goccy/go-json"
 )
@@ -57,7 +56,6 @@ func (h Handler) HandleSavePayment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) HandlePaymentSummary(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
