@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"rinha-backend-2025-gtiburcio/src/model"
 	"time"
@@ -78,8 +77,6 @@ func (h Handler) HandlePaymentSummary(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	log.Default().Printf("get time %d \n", (time.Since(start) / time.Millisecond))
 
 	w.Header().Add("Content-Type", "application/json")
 	w.Write(resp)
