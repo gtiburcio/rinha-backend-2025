@@ -24,8 +24,9 @@ func (p PaymentRequest) Valid() error {
 }
 
 type PaymentSummaryDTO struct {
-	Type   string
-	Amount float64
+	Type        string
+	Amount      float64
+	RequestedAt time.Time
 }
 
 type PaymentSummaryResponse struct {
@@ -38,7 +39,17 @@ type PaymentSummaryResponseDetail struct {
 	TotalAmount   float64 `json:"totalAmount"`
 }
 
-func BuildResponse(models []PaymentSummaryDTO) (p PaymentSummaryResponse) {
+func BuildResponse(models []PaymentSummaryDTO, from, to string) (p PaymentSummaryResponse, err error) {
+	fromTime, err := time.Parse(time.RFC3339Nano, from)
+	if err != nil {
+		return p, err
+	}
+
+	toTime, err := time.Parse(time.RFC3339Nano, to)
+	if err != nil {
+		return p, err
+	}
+
 	def := PaymentSummaryResponseDetail{
 		TotalRequests: 0,
 		TotalAmount:   0,
@@ -48,6 +59,12 @@ func BuildResponse(models []PaymentSummaryDTO) (p PaymentSummaryResponse) {
 		TotalAmount:   0,
 	}
 	for _, m := range models {
+		c1 := fromTime.Compare(m.RequestedAt)
+		c2 := toTime.Compare(m.RequestedAt)
+		if c1 == 1 || c2 == -1 {
+			continue
+		}
+
 		if m.Type == "default" {
 			def.TotalAmount = def.TotalAmount + m.Amount
 			def.TotalRequests = def.TotalRequests + 1

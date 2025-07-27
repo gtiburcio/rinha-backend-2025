@@ -8,8 +8,9 @@ import (
 
 type (
 	UseCase struct {
-		client     Client
-		repository Repository
+		client         Client
+		repository     Repository
+		concurrentdata Concurrentdata
 	}
 
 	Client interface {
@@ -20,13 +21,20 @@ type (
 		Save(ctx context.Context, pr model.PaymentRequest, strategyType string) error
 
 		FindSummary(ctx context.Context, from, to string) ([]model.PaymentSummaryDTO, error)
+
+		FindAll() ([]model.PaymentSummaryDTO, error)
+	}
+
+	Concurrentdata interface {
+		GetData() []model.PaymentSummaryDTO
 	}
 )
 
-func NewUseCase(client Client, repository Repository) UseCase {
+func NewUseCase(client Client, repository Repository, concurrentdata Concurrentdata) UseCase {
 	return UseCase{
-		client:     client,
-		repository: repository,
+		client:         client,
+		repository:     repository,
+		concurrentdata: concurrentdata,
 	}
 }
 
@@ -44,6 +52,10 @@ func (u UseCase) ProcessPayment(ctx context.Context, pr model.PaymentRequest) er
 	return nil
 }
 
-func (u UseCase) FindSummary(ctx context.Context, from, to string) ([]model.PaymentSummaryDTO, error) {
-	return u.repository.FindSummary(ctx, from, to)
+func (u UseCase) FindSummary() []model.PaymentSummaryDTO {
+	return u.concurrentdata.GetData()
+}
+
+func (u UseCase) FindAll() ([]model.PaymentSummaryDTO, error) {
+	return u.repository.FindAll()
 }

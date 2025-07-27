@@ -49,3 +49,20 @@ func (r Repository) FindSummary(ctx context.Context, from, to string) ([]model.P
 
 	return dtos, nil
 }
+
+func (r Repository) FindAll() ([]model.PaymentSummaryDTO, error) {
+	rows, err := r.dbConn.Query(context.Background(), "select type, amount, requested_at from payment")
+	if err != nil {
+		return nil, err
+	}
+
+	dtos := []model.PaymentSummaryDTO{}
+
+	for rows.Next() {
+		psm := model.PaymentSummaryDTO{}
+		rows.Scan(&psm.Type, &psm.Amount, &psm.RequestedAt)
+		dtos = append(dtos, psm)
+	}
+
+	return dtos, nil
+}

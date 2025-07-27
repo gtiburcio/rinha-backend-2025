@@ -22,7 +22,8 @@ func main() {
 
 	c := client.NewClient()
 	r := repository.NewRepository(dbConfig.DBConn)
-	u := usecase.NewUseCase(c, r)
+	concurrentSlice := repository.NewConcurrentSlice(r)
+	u := usecase.NewUseCase(c, r, concurrentSlice)
 
 	j := job.NewJob(u)
 	j.Run()

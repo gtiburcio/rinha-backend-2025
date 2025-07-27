@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"rinha-backend-2025-gtiburcio/src/model"
 
@@ -19,7 +18,9 @@ type (
 	}
 
 	UseCase interface {
-		FindSummary(ctx context.Context, from, to string) ([]model.PaymentSummaryDTO, error)
+		FindSummary() []model.PaymentSummaryDTO
+
+		FindAll() ([]model.PaymentSummaryDTO, error)
 	}
 )
 
@@ -64,13 +65,15 @@ func (h Handler) HandlePaymentSummary(w http.ResponseWriter, r *http.Request) {
 	from := r.URL.Query().Get("from")
 	to := r.URL.Query().Get("to")
 
-	dtos, err := h.useCase.FindSummary(r.Context(), from, to)
+	dtos, _ := h.useCase.FindAll()
+
+	responseList, err := model.BuildResponse(dtos, from, to)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "invalid dates", http.StatusBadRequest)
 		return
 	}
 
-	resp, err := json.Marshal(model.BuildResponse(dtos))
+	resp, err := json.Marshal(responseList)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
